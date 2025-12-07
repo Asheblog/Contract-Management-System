@@ -1,0 +1,88 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:../db/contract.db"
+}
+
+model User {
+  id              Int       @id @default(autoincrement())
+  email           String    @unique
+  password        String
+  name            String
+  avatar          String?   // 头像文件路径
+  role            String    @default("user") // "admin" or "user"
+  viewPreferences String?   // JSON string for column preferences
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  contracts       Contract[] @relation("CreatedBy")
+  logs            AuditLog[]
+}
+
+model ContractField {
+  id        Int     @id @default(autoincrement())
+  key       String  @unique
+  label     String
+  type      String  // "text", "number", "date"
+  isVisible Boolean @default(true)
+  order     Int     @default(0)
+}
+
+model Contract {
+  id          Int          @id @default(autoincrement())
+  name        String
+  partner     String       // 合作方
+  signDate    DateTime
+  expireDate  DateTime
+  status      String       @default("active") // "active", "archived", "void"
+  isProcessed Boolean      @default(false)
+  customData  String       @default("{}") // JSON for dynamic fields
+  tags        String       @default("[]") // JSON array of tag names
+  sortOrder   Int          @default(0) // For drag-drop sorting
+  createdById Int
+  createdBy   User         @relation("CreatedBy", fields: [createdById], references: [id])
+  attachments Attachment[]
+  logs        AuditLog[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Tag {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  color     String   @default("#1890ff")
+  createdAt DateTime @default(now())
+}
+
+model Attachment {
+  id         Int      @id @default(autoincrement())
+  fileName   String
+  filePath   String
+  mimeType   String
+  size       Int
+  contractId Int
+  contract   Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  action     String   // "create", "update", "delete", "process"
+  details    String   // JSON description of changes
+  contractId Int?
+  contract   Contract? @relation(fields: [contractId], references: [id], onDelete: SetNull)
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id])
+  createdAt  DateTime @default(now())
+}
+
+model SystemSetting {
+  id    Int    @id @default(autoincrement())
+  key   String @unique
+  value String // JSON value
+}

@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: contract-backend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - JWT_SECRET=${JWT_SECRET:-your-super-secret-key}
+      - JWT_EXPIRES_IN=7d
+      - DATABASE_URL=file:/app/db/contract.db
+      - UPLOAD_DIR=/app/uploads
+    volumes:
+      - ./data/db:/app/db
+      - ./data/uploads:/app/uploads
+    networks:
+      - contract-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: contract-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - contract-network
+
+networks:
+  contract-network:
+    driver: bridge
+
+volumes:
+  db-data:
+  uploads-data:
