@@ -17,14 +17,16 @@ export class AttachmentsService {
         const contract = await this.prisma.contract.findUnique({ where: { id: contractId } });
         if (!contract) throw new NotFoundException('Contract not found');
 
-        const fileName = `${Date.now()}-${file.originalname}`;
+        // 修复中文文件名乱码：multer 使用 Latin1 编码，需要转换为 UTF-8
+        const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+        const fileName = `${Date.now()}-${originalName}`;
         const filePath = path.join(this.uploadDir, fileName);
 
         fs.writeFileSync(filePath, file.buffer);
 
         return this.prisma.attachment.create({
             data: {
-                fileName: file.originalname,
+                fileName: originalName,
                 filePath: fileName,
                 mimeType: file.mimetype,
                 size: file.size,
