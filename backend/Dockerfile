@@ -14,8 +14,8 @@ RUN npx prisma generate
 COPY . .
 RUN npm run build
 
-# Verify build output exists
-RUN ls -la dist/ && test -f dist/main.js
+# Verify build output exists (NestJS outputs to dist/src/)
+RUN ls -la dist/src/ && test -f dist/src/main.js
 
 # Compile seed script separately
 RUN npx tsc prisma/seed.ts --outDir dist/prisma --esModuleInterop --skipLibCheck || true
