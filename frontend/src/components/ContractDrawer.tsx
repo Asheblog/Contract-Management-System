@@ -112,8 +112,38 @@ export default function ContractDrawer({ open, contract, mode, onClose, onModeCh
         return false;
     };
 
-    const handleDownload = (attachment: Attachment) => {
-        window.open(`/api/attachments/${attachment.id}/download`, '_blank');
+    const handleDownload = async (attachment: Attachment) => {
+        try {
+            const response = await api.get(`/attachments/${attachment.id}/download`, {
+                responseType: 'blob',
+            });
+            // 从 Content-Disposition 头获取文件名
+            const contentDisposition = response.headers['content-disposition'];
+            let fileName = attachment.fileName;
+            if (contentDisposition) {
+                // 优先从 filename* (RFC 5987) 中解码
+                const filenameStarMatch = contentDisposition.match(/filename\*=UTF-8''(.+?)(?:;|$)/);
+                if (filenameStarMatch) {
+                    fileName = decodeURIComponent(filenameStarMatch[1]);
+                } else {
+                    const filenameMatch = contentDisposition.match(/filename="(.+?)"/);
+                    if (filenameMatch) {
+                        fileName = decodeURIComponent(filenameMatch[1]);
+                    }
+                }
+            }
+            // 创建下载链接
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            message.error('下载失败');
+        }
     };
 
     const handleDeleteAttachment = async (id: number) => {

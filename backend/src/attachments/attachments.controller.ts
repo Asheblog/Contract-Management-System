@@ -26,7 +26,9 @@ export class AttachmentsController {
     async download(@Param('id') id: string, @Res() res: Response) {
         const { stream, fileName, mimeType } = await this.attachmentsService.download(+id);
         res.setHeader('Content-Type', mimeType);
-        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+        // RFC 5987 编码支持中文文件名
+        const encodedFileName = encodeURIComponent(fileName).replace(/['()]/g, escape);
+        res.setHeader('Content-Disposition', `attachment; filename="${encodedFileName}"; filename*=UTF-8''${encodedFileName}`);
         stream.pipe(res);
     }
 
