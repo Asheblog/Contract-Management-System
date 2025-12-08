@@ -203,7 +203,7 @@ npm install
 npm run dev
 ```
 
-### 方式三：Docker 部署
+### 方式三：Docker 部署（本地构建）
 
 ```bash
 # 构建并启动
@@ -216,11 +216,25 @@ docker compose logs -f
 docker compose down
 ```
 
+### 方式四：使用 GHCR 镜像部署（推荐）
+
+项目通过 GitHub Actions 自动构建并推送镜像到 GitHub Container Registry (GHCR)，可直接拉取使用：
+
+```bash
+# 使用生产环境配置
+docker compose -f docker-compose.prod.yml up -d
+
+# 查看日志
+docker compose -f docker-compose.prod.yml logs -f
+```
+
 ---
 
 ## 📦 Docker 部署说明
 
-### docker-compose.yml
+### 本地构建 (docker-compose.yml)
+
+用于开发或本地构建镜像：
 
 ```yaml
 version: '3.8'
@@ -263,6 +277,49 @@ networks:
     driver: bridge
 ```
 
+### 生产环境 (docker-compose.prod.yml)
+
+使用 GitHub Actions 自动构建的 GHCR 镜像，无需本地构建：
+
+```yaml
+version: '3.8'
+
+services:
+  backend:
+    image: ghcr.io/Asheblog/contract-backend:latest
+    container_name: contract-backend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - JWT_SECRET=${JWT_SECRET:-请修改为安全的随机字符串}
+      - JWT_EXPIRES_IN=7d
+      - DATABASE_URL=file:/app/db/contract.db
+      - UPLOAD_DIR=/app/uploads
+    volumes:
+      - ./data/db:/app/db
+      - ./data/uploads:/app/uploads
+    networks:
+      - contract-network
+
+  frontend:
+    image: ghcr.io/Asheblog/contract-frontend:latest
+    container_name: contract-frontend
+    restart: unless-stopped
+    ports:
+      - "3888:80"
+    depends_on:
+      - backend
+    networks:
+      - contract-network
+
+networks:
+  contract-network:
+    driver: bridge
+```
+
+> 📝 **注意**：请将 `你的github用户名` 替换为实际的 GitHub 用户名（小写）
+
 ### 数据持久化
 
 数据存储在 `./data` 目录下：
@@ -294,13 +351,87 @@ openssl rand -base64 32
 
 ---
 
-## 🔧 1Panel 部署
+## 🔧 1Panel 部署（详细步骤）
 
-1. 在 1Panel 中创建新的 Docker Compose 应用
-2. 将 `docker-compose.yml` 内容粘贴到编排配置中
-3. 设置工作目录为项目根目录
-4. 配置必要的环境变量（特别是 `JWT_SECRET`）
-5. 点击部署
+1Panel 是一款现代化的 Linux 服务器运维管理面板，以下是详细的部署步骤：
+
+### 前置条件
+
+- 已安装 1Panel 面板
+- 服务器已安装 Docker
+
+### 步骤 1：创建 Compose 应用
+
+1. 登录 1Panel 面板
+2. 进入 **容器** → **Compose** → **创建 Compose**
+3. 填写应用名称，如 `contract-manager`
+4. 在编排内容中粘贴上面生产环境docker编排配置
+
+> ⚠️ **重要**：
+> - 将 `你的github用户名` 替换为实际的 GitHub 用户名（小写）
+> - 将 `JWT_SECRET` 替换为安全的随机字符串
+
+5. 点击 **确认** 创建并启动容器
+
+### 步骤 2：创建网站（反向代理）
+
+1. 进入 **网站** → **网站** → **创建网站**
+2. 选择 **反向代理**
+3. 填写配置：
+
+| 配置项 | 填写内容 |
+|--------|----------|
+| **主域名** | 你的域名，如 `contract.example.com` |
+| **代理地址** | `127.0.0.1` |
+| **代理端口** | `3000` |
+
+4. 点击 **确认** 创建网站
+
+### 步骤 3：配置 HTTPS（可选但推荐）
+
+1. 在网站列表中点击刚创建的网站
+2. 进入 **HTTPS** 选项卡
+3. 申请或上传 SSL 证书
+4. 开启 **强制 HTTPS**
+
+### 步骤 4：验证部署
+
+访问你配置的域名，应该能看到合同管理系统的登录页面。
+
+**默认管理员账号**：
+- 邮箱：`admin@example.com`
+- 密码：`admin123`
+
+> ⚠️ 首次登录后请立即修改默认密码！
+
+### 网络架构说明
+
+```
+用户浏览器
+    ↓ HTTPS (443)
+1Panel Nginx (反向代理)
+    ↓ HTTP (3000)
+Frontend 容器 (Nginx :80)
+    ↓ /api/* 转发
+Backend 容器 (:3001)
+    ↓
+SQLite 数据库
+```
+
+### 更新镜像
+
+当 GitHub 有新的提交时，镜像会自动构建。更新部署：
+
+```bash
+# 在 Compose 应用目录下执行
+docker compose pull
+docker compose up -d
+```
+
+或在 1Panel 中：
+1. 进入 **容器** → **Compose**
+2. 找到 `contract-manager` 应用
+3. 点击 **重建** 按钮
 
 详细说明请参考 [构建命令文档](./docs/构建命令.md)
 
@@ -308,26 +439,30 @@ openssl rand -base64 32
 
 ## 🔄 CI/CD
 
-项目配置了 GitHub Actions 自动化流程：
+项目配置了 GitHub Actions 自动化流程，使用 GitHub Container Registry (GHCR) 存储镜像：
 
-1. **触发条件**：推送到 `main` 分支
+### 工作流程
+
+1. **触发条件**：推送到 `main` 分支或创建 `v*` 标签
 2. **构建流程**：
    - 构建后端 Docker 镜像
    - 构建前端 Docker 镜像
-   - 推送至 Docker Hub
-3. **自动部署**：通过 SSH 自动更新服务器容器
+   - 自动推送至 GHCR (`ghcr.io`)
+3. **镜像地址**：
+   - 后端：`ghcr.io/你的用户名/contract-backend:latest`
+   - 前端：`ghcr.io/你的用户名/contract-frontend:latest`
 
-### 配置 Secrets
+### 无需配置 Secrets
 
-在 GitHub 仓库设置中配置以下 Secrets：
+使用 GHCR 时，GitHub Actions 会自动使用 `GITHUB_TOKEN` 进行认证，**无需手动配置任何 Secrets**。
 
-| Secret | 说明 |
-|--------|------|
-| `DOCKER_USERNAME` | Docker Hub 用户名 |
-| `DOCKER_PASSWORD` | Docker Hub 密码/Token |
-| `SERVER_HOST` | 服务器 IP 地址 |
-| `SERVER_USER` | 服务器 SSH 用户 |
-| `SERVER_SSH_KEY` | 服务器 SSH 私钥 |
+### 手动触发构建
+
+除了推送代码自动触发外，也可以在 GitHub 仓库页面手动触发：
+
+1. 进入仓库的 **Actions** 页面
+2. 选择 **Build and Push Images** 工作流
+3. 点击 **Run workflow**
 
 ---
 

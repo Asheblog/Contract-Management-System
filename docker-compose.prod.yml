@@ -1,0 +1,57 @@
+version: '3.8'
+
+# ============================================
+# 生产环境配置 - 使用 GHCR 镜像
+# ============================================
+# 使用方法: docker compose -f docker-compose.prod.yml up -d
+#
+# 请先修改以下配置：
+# 1. 将 "你的github用户名" 替换为实际的 GitHub 用户名（小写）
+# 2. 将 JWT_SECRET 替换为安全的随机字符串（推荐32位以上）
+#    生成命令: openssl rand -base64 32
+# ============================================
+
+services:
+  backend:
+    image: ghcr.io/你的github用户名/contract-backend:latest
+    container_name: contract-backend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      # ⚠️ 请务必修改为安全的随机字符串！
+      - JWT_SECRET=${JWT_SECRET:-请替换为安全的随机字符串}
+      - JWT_EXPIRES_IN=7d
+      - DATABASE_URL=file:/app/db/contract.db
+      - UPLOAD_DIR=/app/uploads
+      # 可选：自定义默认管理员账号
+      # - DEFAULT_ADMIN_EMAIL=admin@example.com
+      # - DEFAULT_ADMIN_PASSWORD=admin123
+      # - DEFAULT_ADMIN_NAME=系统管理员
+    volumes:
+      - ./data/db:/app/db
+      - ./data/uploads:/app/uploads
+    networks:
+      - contract-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    image: ghcr.io/你的github用户名/contract-frontend:latest
+    container_name: contract-frontend
+    restart: unless-stopped
+    ports:
+      # 外部端口:容器内部端口
+      # 在 1Panel 反向代理中填写外部端口 3000
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - contract-network
+
+networks:
+  contract-network:
+    driver: bridge
