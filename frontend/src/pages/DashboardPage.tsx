@@ -186,7 +186,7 @@ export default function DashboardPage() {
         return false;
     };
 
-    const getExpireStatus = (expireDate: string, isProcessed: boolean) => {
+    const getExpireStatus = (expireDate: string, _isProcessed: boolean) => {
         const days = dayjs(expireDate).diff(dayjs(), 'day');
         if (days < 0) return { color: 'red', text: `已过期 ${Math.abs(days)} 天` };
         if (days <= 7) return { color: 'orange', text: `${days} 天后到期` };

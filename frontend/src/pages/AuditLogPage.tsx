@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Table, Card, Input, Select, DatePicker, Space, Tag, Button, Pagination } from 'antd';
-import { SearchOutlined, ReloadOutlined } from '@ant-design/icons';
+import { Table, Card, Select, DatePicker, Space, Tag, Button } from 'antd';
+import { ReloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../services/api';
 

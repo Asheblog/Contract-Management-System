@@ -1,7 +1,7 @@
-import { useRef, useEffect, useState, useMemo } from 'react';
-import { FixedSizeList as List } from 'react-window';
-import { Table, Spin, Empty } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
+import { useRef, useEffect, useState, useMemo, CSSProperties } from 'react';
+import { List } from 'react-window';
+import { Spin, Empty } from 'antd';
+import type { ColumnsType, ColumnType } from 'antd/es/table';
 
 interface VirtualTableProps<T> {
     dataSource: T[];
@@ -51,6 +51,14 @@ export default function VirtualTable<T extends object>({
         return record[rowKey] as string | number;
     };
 
+    // Helper to safely get dataIndex value from a column
+    const getColumnDataIndex = (col: ColumnsType<T>[number]): keyof T | undefined => {
+        if ('dataIndex' in col) {
+            return (col as ColumnType<T>).dataIndex as keyof T;
+        }
+        return undefined;
+    };
+
     if (loading) {
         return (
             <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -66,39 +74,6 @@ export default function VirtualTable<T extends object>({
             </div>
         );
     }
-
-    const Row = ({ index, style }: { index: number; style: React.CSSProperties }) => {
-        const record = dataSource[index];
-        return (
-            <div
-                style={{
-                    ...style,
-                    display: 'flex',
-                    alignItems: 'center',
-                    borderBottom: '1px solid #f0f0f0',
-                    cursor: onRowClick ? 'pointer' : 'default',
-                }}
-                onClick={() => onRowClick?.(record)}
-            >
-                {columns.map((col, colIndex) => (
-                    <div
-                        key={col.key as string || colIndex}
-                        style={{
-                            width: columnWidths[colIndex],
-                            padding: '8px 12px',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                        }}
-                    >
-                        {col.render
-                            ? col.render(record[col.dataIndex as keyof T], record, index)
-                            : String(record[col.dataIndex as keyof T] ?? '')}
-                    </div>
-                ))}
-            </div>
-        );
-    };
 
     return (
         <div ref={containerRef} style={{ width: '100%' }}>
@@ -131,7 +106,44 @@ export default function VirtualTable<T extends object>({
                 itemSize={rowHeight}
                 width="100%"
             >
-                {Row}
+                {({ index, style }: { index: number; style: CSSProperties }) => {
+                    const record = dataSource[index];
+                    const recordKey = getRowKey(record);
+                    return (
+                        <div
+                            key={recordKey}
+                            style={{
+                                ...style,
+                                display: 'flex',
+                                alignItems: 'center',
+                                borderBottom: '1px solid #f0f0f0',
+                                cursor: onRowClick ? 'pointer' : 'default',
+                            }}
+                            onClick={() => onRowClick?.(record)}
+                        >
+                            {columns.map((col, colIndex) => {
+                                const dataIndex = getColumnDataIndex(col);
+                                const cellValue = dataIndex ? record[dataIndex] : undefined;
+                                return (
+                                    <div
+                                        key={col.key as string || colIndex}
+                                        style={{
+                                            width: columnWidths[colIndex],
+                                            padding: '8px 12px',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap',
+                                        }}
+                                    >
+                                        {col.render
+                                            ? (col.render(cellValue, record, index) as React.ReactNode)
+                                            : String(cellValue ?? '')}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    );
+                }}
             </List>
         </div>
     );

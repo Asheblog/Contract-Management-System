@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Form, Input, InputNumber, Switch, Button, Card, Divider, message, Space, Table, Modal, Select, Popconfirm } from 'antd';
+import { Form, Input, InputNumber, Switch, Button, Card, message, Space, Table, Modal, Select, Popconfirm } from 'antd';
 import { PlusOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import { useAuthStore } from '../stores/authStore';
-import { SmtpSettings, ReminderSettings, ContractField } from '../types';
+import { SmtpSettings, ContractField } from '../types';
 import api from '../services/api';
 
 export default function SettingsPage() {

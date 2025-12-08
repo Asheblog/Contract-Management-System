@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Drawer, Form, Input, DatePicker, Select, Button, Space, Descriptions, Upload, List, message, Popconfirm, Divider, Timeline, Tag } from 'antd';
 import { UploadOutlined, DeleteOutlined, DownloadOutlined, EditOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import { Contract, ContractField, Attachment, AuditLog } from '../types';
+import { Contract, Attachment, AuditLog } from '../types';
 import { useContractStore } from '../stores/contractStore';
 import api from '../services/api';
 
@@ -19,7 +19,7 @@ export default function ContractDrawer({ open, contract, mode, onClose, onModeCh
     const [loading, setLoading] = useState(false);
     const [attachments, setAttachments] = useState<Attachment[]>([]);
     const [logs, setLogs] = useState<AuditLog[]>([]);
-    const { fields, createContract, updateContract, fetchContracts } = useContractStore();
+    const { fields, createContract, updateContract } = useContractStore();
 
     useEffect(() => {
         if (open && contract) {
