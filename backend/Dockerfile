@@ -1,5 +1,8 @@
 FROM node:20-alpine AS builder
 
+# Install OpenSSL for Prisma
+RUN apk add --no-cache openssl
+
 WORKDIR /app
 
 # Copy package files
@@ -21,6 +24,9 @@ RUN ls -la dist/src/ && test -f dist/src/main.js
 RUN npx tsc prisma/seed.ts --outDir dist/prisma --esModuleInterop --skipLibCheck || true
 
 FROM node:20-alpine AS runner
+
+# Install OpenSSL for Prisma runtime
+RUN apk add --no-cache openssl
 
 WORKDIR /app
 
