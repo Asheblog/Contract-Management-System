@@ -2,14 +2,20 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Copy package files
 COPY package*.json ./
 RUN npm ci
 
+# Copy prisma schema and generate client
 COPY prisma ./prisma/
 RUN npx prisma generate
 
+# Copy source code and build
 COPY . .
 RUN npm run build
+
+# Verify build output exists
+RUN ls -la dist/ && test -f dist/main.js
 
 # Compile seed script separately
 RUN npx tsc prisma/seed.ts --outDir dist/prisma --esModuleInterop --skipLibCheck || true
@@ -18,14 +24,23 @@ FROM node:20-alpine AS runner
 
 WORKDIR /app
 
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/scripts ./scripts
+# Copy only production dependencies
+COPY package*.json ./
+RUN npm ci --omit=dev
 
-RUN mkdir -p /app/uploads /app/db
+# Copy prisma schema and generate client for production
+COPY prisma ./prisma/
+RUN npx prisma generate
+
+# Copy built assets
+COPY --from=builder /app/dist ./dist
+
+# Copy scripts
+COPY scripts ./scripts
 RUN chmod +x /app/scripts/docker-entrypoint.sh
+
+# Create necessary directories
+RUN mkdir -p /app/uploads /app/db
 
 ENV NODE_ENV=production
 ENV PORT=3001

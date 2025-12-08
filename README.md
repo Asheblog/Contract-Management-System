@@ -282,17 +282,15 @@ networks:
 使用 GitHub Actions 自动构建的 GHCR 镜像，无需本地构建：
 
 ```yaml
-version: '3.8'
-
 services:
   backend:
-    image: ghcr.io/Asheblog/contract-backend:latest
+    image: ghcr.io/asheblog/contract-backend:latest
     container_name: contract-backend
     restart: unless-stopped
     environment:
       - NODE_ENV=production
       - PORT=3001
-      - JWT_SECRET=${JWT_SECRET:-请修改为安全的随机字符串}
+      - JWT_SECRET=your-secure-random-string-here
       - JWT_EXPIRES_IN=7d
       - DATABASE_URL=file:/app/db/contract.db
       - UPLOAD_DIR=/app/uploads
@@ -303,7 +301,7 @@ services:
       - contract-network
 
   frontend:
-    image: ghcr.io/Asheblog/contract-frontend:latest
+    image: ghcr.io/asheblog/contract-frontend:latest
     container_name: contract-frontend
     restart: unless-stopped
     ports:
@@ -318,7 +316,7 @@ networks:
     driver: bridge
 ```
 
-> 📝 **注意**：请将 `你的github用户名` 替换为实际的 GitHub 用户名（小写）
+> **Note**: Replace `JWT_SECRET` with a secure random string (`openssl rand -base64 32`)
 
 ### 数据持久化
 
