@@ -160,7 +160,7 @@ export default function MainLayout() {
                 padding: isMobile ? 16 : 24,
                 background: theme === 'dark' ? '#1f1f1f' : '#fff',
                 borderRadius: 8,
-                minHeight: 'calc(100vh - 64px - 160px)',
+                minHeight: 'calc(100vh - 64px - 60px)',
                 transition: 'background 0.3s',
             }}>
                 <Outlet />

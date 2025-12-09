@@ -218,14 +218,36 @@ body {
   width: 100%;
 }
 
-/* Custom list centering */
-ul, ol {
+/* Table center alignment */
+.ant-table-thead > tr > th,
+.ant-table-tbody > tr > td {
+  text-align: center !important;
+}
+
+.ant-table-thead > tr > th:first-child,
+.ant-table-tbody > tr > td:first-child {
+  text-align: center !important;
+}
+
+/* Keep action column content centered */
+.ant-table-tbody > tr > td:last-child .ant-space {
+  justify-content: center;
+}
+
+/* Custom list centering - exclude navigation menus */
+.ant-list ul,
+.ant-list ol,
+.content-list ul,
+.content-list ol {
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-ul li, ol li {
+.ant-list ul li,
+.ant-list ol li,
+.content-list ul li,
+.content-list ol li {
   width: 100%;
   max-width: 800px;
 }
