@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Form, Input, InputNumber, Switch, Button, Card, message, Space, Table, Modal, Select, Popconfirm } from 'antd';
-import { PlusOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
+import { Form, Input, InputNumber, Switch, Button, Card, message, Space, Table, Modal, Select, Popconfirm, Tag, Divider, Typography } from 'antd';
+import { PlusOutlined, DeleteOutlined, EditOutlined, LockOutlined } from '@ant-design/icons';
 import { useAuthStore } from '../stores/authStore';
 import { SmtpSettings, ContractField } from '../types';
 import api from '../services/api';
+
+const { Text } = Typography;
 
 export default function SettingsPage() {
     const { user } = useAuthStore();
@@ -97,8 +99,8 @@ export default function SettingsPage() {
             await api.delete(`/contract-fields/${id}`);
             message.success('删除成功');
             loadFields();
-        } catch (error) {
-            message.error('删除失败');
+        } catch (error: any) {
+            message.error(error.response?.data?.message || '删除失败');
         }
     };
 
@@ -129,7 +131,17 @@ export default function SettingsPage() {
     };
 
     const fieldColumns = [
-        { title: '字段名', dataIndex: 'key', key: 'key' },
+        {
+            title: '字段名',
+            dataIndex: 'key',
+            key: 'key',
+            render: (key: string, record: ContractField) => (
+                <Space>
+                    <span>{key}</span>
+                    {record.isSystem && <Tag icon={<LockOutlined />} color="blue">系统</Tag>}
+                </Space>
+            )
+        },
         { title: '显示名称', dataIndex: 'label', key: 'label' },
         {
             title: '类型', dataIndex: 'type', key: 'type', render: (type: string) =>
@@ -149,13 +161,19 @@ export default function SettingsPage() {
             render: (_: any, record: ContractField) => (
                 <Space>
                     <Button icon={<EditOutlined />} size="small" onClick={() => handleEditField(record)} />
-                    <Popconfirm title="确定删除？" onConfirm={() => handleDeleteField(record.id)}>
-                        <Button icon={<DeleteOutlined />} size="small" danger />
-                    </Popconfirm>
+                    {!record.isSystem && (
+                        <Popconfirm title="确定删除？" onConfirm={() => handleDeleteField(record.id)}>
+                            <Button icon={<DeleteOutlined />} size="small" danger />
+                        </Popconfirm>
+                    )}
                 </Space>
             ),
         },
     ];
+
+    // 分离系统字段和自定义字段
+    const systemFields = fields.filter(f => f.isSystem);
+    const customFields = fields.filter(f => !f.isSystem);
 
     if (user?.role !== 'admin') {
         return (
@@ -219,17 +237,40 @@ export default function SettingsPage() {
             </div>
 
             <div className="settings-section">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                    <h3>📝 自定义字段管理</h3>
-                    <Button type="primary" icon={<PlusOutlined />} onClick={handleAddField}>
-                        添加字段
-                    </Button>
-                </div>
-                <Table dataSource={fields} columns={fieldColumns} rowKey="id" pagination={false} />
+                <h3>📋 字段管理</h3>
+                <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
+                    管理合同列表中显示的字段，可修改显示名称和控制是否显示。系统字段不可删除。
+                </Text>
+
+                <Divider orientation="left">系统默认字段</Divider>
+                <Table
+                    dataSource={systemFields}
+                    columns={fieldColumns}
+                    rowKey="id"
+                    pagination={false}
+                    size="small"
+                />
+
+                <Divider orientation="left">
+                    <Space>
+                        自定义字段
+                        <Button type="primary" icon={<PlusOutlined />} size="small" onClick={handleAddField}>
+                            添加字段
+                        </Button>
+                    </Space>
+                </Divider>
+                <Table
+                    dataSource={customFields}
+                    columns={fieldColumns}
+                    rowKey="id"
+                    pagination={false}
+                    size="small"
+                    locale={{ emptyText: '暂无自定义字段' }}
+                />
             </div>
 
             <Modal
-                title={editingField ? '编辑字段' : '添加字段'}
+                title={editingField ? (editingField.isSystem ? '编辑系统字段' : '编辑字段') : '添加字段'}
                 open={fieldModalOpen}
                 onOk={handleSaveField}
                 onCancel={() => setFieldModalOpen(false)}
@@ -242,12 +283,18 @@ export default function SettingsPage() {
                         <Input placeholder="如：合同金额" />
                     </Form.Item>
                     <Form.Item name="type" label="类型" rules={[{ required: true, message: '请选择类型' }]}>
-                        <Select options={[
-                            { label: '文本', value: 'text' },
-                            { label: '数字', value: 'number' },
-                            { label: '日期', value: 'date' },
-                        ]} />
+                        <Select
+                            disabled={editingField?.isSystem}
+                            options={[
+                                { label: '文本', value: 'text' },
+                                { label: '数字', value: 'number' },
+                                { label: '日期', value: 'date' },
+                            ]}
+                        />
                     </Form.Item>
+                    {editingField?.isSystem && (
+                        <Text type="secondary">系统字段仅可修改显示名称</Text>
+                    )}
                 </Form>
             </Modal>
         </div>

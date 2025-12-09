@@ -62,6 +62,7 @@ export interface ContractField {
     label: string;
     type: 'text' | 'number' | 'date';
     isVisible: boolean;
+    isSystem: boolean;
     order: number;
 }
 

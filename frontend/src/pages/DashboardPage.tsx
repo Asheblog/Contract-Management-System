@@ -212,9 +212,21 @@ export default function DashboardPage() {
         return sortOrder === 'asc' ? 'ascend' : sortOrder === 'desc' ? 'descend' : undefined;
     };
 
+    // 辅助函数：从系统字段配置中获取显示名称
+    const getFieldLabel = (key: string, defaultLabel: string): string => {
+        const field = fields.find(f => f.key === key && f.isSystem);
+        return field?.label || defaultLabel;
+    };
+
+    // 辅助函数：检查系统字段是否可见
+    const isSystemFieldVisible = (key: string): boolean => {
+        const field = fields.find(f => f.key === key && f.isSystem);
+        return field?.isVisible !== false;
+    };
+
     const baseColumns = [
         {
-            title: '合同名称',
+            title: getFieldLabel('name', '合同名称'),
             dataIndex: 'name',
             key: 'name',
             sorter: true,
@@ -224,14 +236,14 @@ export default function DashboardPage() {
             ),
         },
         {
-            title: '合作方',
+            title: getFieldLabel('partner', '合作方'),
             dataIndex: 'partner',
             key: 'partner',
             sorter: true,
             sortOrder: getSortOrder('partner'),
         },
         {
-            title: '签订日期',
+            title: getFieldLabel('signDate', '签订日期'),
             dataIndex: 'signDate',
             key: 'signDate',
             sorter: true,
@@ -239,7 +251,7 @@ export default function DashboardPage() {
             render: (date: string) => dayjs(date).format('YYYY-MM-DD'),
         },
         {
-            title: '到期日期',
+            title: getFieldLabel('expireDate', '到期日期'),
             dataIndex: 'expireDate',
             key: 'expireDate',
             sorter: true,
@@ -255,7 +267,7 @@ export default function DashboardPage() {
             },
         },
         {
-            title: '状态',
+            title: getFieldLabel('status', '状态'),
             dataIndex: 'status',
             key: 'status',
             sorter: true,
@@ -270,14 +282,14 @@ export default function DashboardPage() {
             ),
         },
         {
-            title: '创建人',
+            title: getFieldLabel('createdBy', '创建人'),
             dataIndex: ['createdBy', 'name'],
             key: 'createdBy',
         },
-    ];
+    ].filter(col => isSystemFieldVisible(col.key));
 
     const customColumns = fields
-        .filter(f => f.isVisible)
+        .filter(f => f.isVisible && !f.isSystem)
         .map(field => ({
             title: field.label,
             dataIndex: ['customData', field.key],

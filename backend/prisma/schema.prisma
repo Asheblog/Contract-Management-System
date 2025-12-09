@@ -30,6 +30,7 @@ model ContractField {
   label     String
   type      String  // "text", "number", "date"
   isVisible Boolean @default(true)
+  isSystem  Boolean @default(false) // 系统默认字段不可删除
   order     Int     @default(0)
 }
 

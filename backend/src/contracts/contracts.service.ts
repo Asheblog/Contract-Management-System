@@ -302,10 +302,33 @@ export class ContractsService {
         return this.prisma.contractField.findMany({ orderBy: { order: 'asc' } });
     }
 
+    // 初始化系统默认字段
+    async initSystemFields() {
+        const systemFields = [
+            { key: 'name', label: '合同名称', type: 'text', order: 1 },
+            { key: 'partner', label: '合作方', type: 'text', order: 2 },
+            { key: 'signDate', label: '签订日期', type: 'date', order: 3 },
+            { key: 'expireDate', label: '到期日期', type: 'date', order: 4 },
+            { key: 'status', label: '状态', type: 'text', order: 5 },
+            { key: 'createdBy', label: '创建人', type: 'text', order: 6 },
+        ];
+
+        for (const field of systemFields) {
+            const existing = await this.prisma.contractField.findUnique({
+                where: { key: field.key },
+            });
+            if (!existing) {
+                await this.prisma.contractField.create({
+                    data: { ...field, isSystem: true, isVisible: true },
+                });
+            }
+        }
+    }
+
     async createField(data: { key: string; label: string; type: string }) {
         const maxOrder = await this.prisma.contractField.aggregate({ _max: { order: true } });
         return this.prisma.contractField.create({
-            data: { ...data, order: (maxOrder._max.order || 0) + 1 },
+            data: { ...data, isSystem: false, order: (maxOrder._max.order || 0) + 1 },
         });
     }
 
@@ -314,6 +337,10 @@ export class ContractsService {
     }
 
     async deleteField(id: number) {
+        const field = await this.prisma.contractField.findUnique({ where: { id } });
+        if (field?.isSystem) {
+            throw new Error('系统默认字段不可删除');
+        }
         return this.prisma.contractField.delete({ where: { id } });
     }
 

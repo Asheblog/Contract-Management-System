@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, BadRequestException } from '@nestjs/common';
 import { ContractsService } from './contracts.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -12,6 +12,11 @@ export class ContractFieldsController {
         return this.contractsService.getFields();
     }
 
+    @Post('init-system')
+    initSystemFields() {
+        return this.contractsService.initSystemFields();
+    }
+
     @Post()
     createField(@Body() body: { key: string; label: string; type: string }) {
         return this.contractsService.createField(body);
@@ -23,7 +28,11 @@ export class ContractFieldsController {
     }
 
     @Delete(':id')
-    deleteField(@Param('id') id: string) {
-        return this.contractsService.deleteField(+id);
+    async deleteField(@Param('id') id: string) {
+        try {
+            return await this.contractsService.deleteField(+id);
+        } catch (error) {
+            throw new BadRequestException(error.message);
+        }
     }
 }
