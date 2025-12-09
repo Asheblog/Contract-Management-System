@@ -5,6 +5,7 @@ import api from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 import { useThemeStore } from '../stores/themeStore';
 import NotificationBell from './NotificationBell';
+import Footer from './Footer';
 
 const { Header, Content } = Layout;
 const { useBreakpoint } = Grid;
@@ -159,11 +160,12 @@ export default function MainLayout() {
                 padding: isMobile ? 16 : 24,
                 background: theme === 'dark' ? '#1f1f1f' : '#fff',
                 borderRadius: 8,
-                minHeight: 'calc(100vh - 64px - 48px)',
+                minHeight: 'calc(100vh - 64px - 160px)',
                 transition: 'background 0.3s',
             }}>
                 <Outlet />
             </Content>
+            <Footer />
         </Layout>
     );
 }
