@@ -20,7 +20,16 @@ export class ContractsService {
             include: { attachments: true, createdBy: { select: { id: true, name: true, email: true } } },
         });
 
-        await this.createAuditLog('create', contract.id, userId, { action: 'Created contract' });
+        await this.createAuditLog('create', contract.id, userId, {
+            summary: '创建合同',
+            fields: {
+                '合同名称': dto.name,
+                '合作方': dto.partner,
+                '签署日期': dto.signDate,
+                '到期日期': dto.expireDate,
+                '状态': this.getStatusLabel(dto.status || 'active'),
+            },
+        });
         return contract;
     }
 
@@ -124,21 +133,41 @@ export class ContractsService {
             },
         });
 
-        await this.createAuditLog('update', contract.id, userId, { before: existing, after: contract });
+        // 生成详细的变更记录
+        const changes = this.generateChangeDetails(existing, dto);
+        await this.createAuditLog('update', contract.id, userId, changes);
         return { ...contract, customData: JSON.parse(contract.customData || '{}') };
     }
 
     async markProcessed(id: number, userId: number) {
+        const existing = await this.findOne(id);
         const contract = await this.prisma.contract.update({
             where: { id },
             data: { isProcessed: true },
         });
-        await this.createAuditLog('process', id, userId, { action: 'Marked as processed' });
+        await this.createAuditLog('process', id, userId, {
+            summary: '标记为已处理',
+            changes: [{
+                field: '处理状态',
+                from: '未处理',
+                to: '已处理',
+            }],
+            contractName: existing.name,
+        });
         return contract;
     }
 
     async delete(id: number, userId: number) {
-        await this.createAuditLog('delete', id, userId, { action: 'Deleted contract' });
+        const existing = await this.findOne(id);
+        await this.createAuditLog('delete', id, userId, {
+            summary: '删除合同',
+            deletedContract: {
+                '合同名称': existing.name,
+                '合作方': existing.partner,
+                '签署日期': this.formatDate(existing.signDate),
+                '到期日期': this.formatDate(existing.expireDate),
+            },
+        });
         return this.prisma.contract.delete({ where: { id } });
     }
 
@@ -177,6 +206,95 @@ export class ContractsService {
                 details: JSON.stringify(details),
             },
         });
+    }
+
+    // 生成详细的变更记录
+    private generateChangeDetails(existing: any, dto: UpdateContractDto) {
+        const changes: Array<{ field: string; from: string; to: string }> = [];
+        const fieldLabels: Record<string, string> = {
+            name: '合同名称',
+            partner: '合作方',
+            signDate: '签署日期',
+            expireDate: '到期日期',
+            status: '状态',
+            isProcessed: '处理状态',
+        };
+
+        // 检查基础字段变更
+        if (dto.name !== undefined && dto.name !== existing.name) {
+            changes.push({ field: fieldLabels.name, from: existing.name, to: dto.name });
+        }
+        if (dto.partner !== undefined && dto.partner !== existing.partner) {
+            changes.push({ field: fieldLabels.partner, from: existing.partner, to: dto.partner });
+        }
+        if (dto.signDate !== undefined) {
+            const existingDate = this.formatDate(existing.signDate);
+            const newDate = dto.signDate;
+            if (existingDate !== newDate) {
+                changes.push({ field: fieldLabels.signDate, from: existingDate, to: newDate });
+            }
+        }
+        if (dto.expireDate !== undefined) {
+            const existingDate = this.formatDate(existing.expireDate);
+            const newDate = dto.expireDate;
+            if (existingDate !== newDate) {
+                changes.push({ field: fieldLabels.expireDate, from: existingDate, to: newDate });
+            }
+        }
+        if (dto.status !== undefined && dto.status !== existing.status) {
+            changes.push({
+                field: fieldLabels.status,
+                from: this.getStatusLabel(existing.status),
+                to: this.getStatusLabel(dto.status),
+            });
+        }
+        if (dto.isProcessed !== undefined && dto.isProcessed !== existing.isProcessed) {
+            changes.push({
+                field: fieldLabels.isProcessed,
+                from: existing.isProcessed ? '已处理' : '未处理',
+                to: dto.isProcessed ? '已处理' : '未处理',
+            });
+        }
+
+        // 检查自定义字段变更
+        if (dto.customData !== undefined) {
+            const existingCustom = existing.customData || {};
+            const newCustom = dto.customData || {};
+            const allKeys = new Set([...Object.keys(existingCustom), ...Object.keys(newCustom)]);
+
+            for (const key of allKeys) {
+                const oldValue = existingCustom[key] ?? '';
+                const newValue = newCustom[key] ?? '';
+                if (String(oldValue) !== String(newValue)) {
+                    changes.push({
+                        field: key,
+                        from: String(oldValue) || '(空)',
+                        to: String(newValue) || '(空)',
+                    });
+                }
+            }
+        }
+
+        return {
+            summary: changes.length > 0 ? `更新了 ${changes.length} 个字段` : '无变更',
+            changes,
+            contractName: existing.name,
+        };
+    }
+
+    private formatDate(date: Date | string): string {
+        if (!date) return '';
+        const d = new Date(date);
+        return d.toISOString().split('T')[0];
+    }
+
+    private getStatusLabel(status: string): string {
+        const labels: Record<string, string> = {
+            active: '进行中',
+            archived: '已归档',
+            void: '已作废',
+        };
+        return labels[status] || status;
     }
 
     // Contract Fields

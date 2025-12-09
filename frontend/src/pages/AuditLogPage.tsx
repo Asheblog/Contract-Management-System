@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Table, Card, Select, DatePicker, Space, Tag, Button } from 'antd';
-import { ReloadOutlined, DownOutlined, UpOutlined } from '@ant-design/icons';
+import { Table, Card, Select, DatePicker, Space, Tag, Button, Typography } from 'antd';
+import { ReloadOutlined, DownOutlined, UpOutlined, ArrowRightOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../services/api';
+
+const { Text } = Typography;
 
 interface AuditLog {
     id: number;
@@ -13,6 +15,20 @@ interface AuditLog {
     createdAt: string;
 }
 
+interface ChangeItem {
+    field: string;
+    from: string;
+    to: string;
+}
+
+interface ParsedDetails {
+    summary?: string;
+    changes?: ChangeItem[];
+    fields?: Record<string, string>;
+    contractName?: string;
+    deletedContract?: Record<string, string>;
+}
+
 const actionLabels: Record<string, { label: string; color: string }> = {
     create: { label: '创建', color: 'green' },
     update: { label: '更新', color: 'blue' },
@@ -20,47 +36,110 @@ const actionLabels: Record<string, { label: string; color: string }> = {
     process: { label: '处理', color: 'orange' },
 };
 
-// 可展开的详情单元格组件
-function ExpandableDetails({ details }: { details: string }) {
+// 格式化详情显示组件
+function FormattedDetails({ details }: { details: string }) {
     const [expanded, setExpanded] = useState(false);
-    const MAX_LINES = 3;
 
-    let content: string;
-
+    let parsed: ParsedDetails | null = null;
     try {
-        const parsed = JSON.parse(details);
-        content = JSON.stringify(parsed, null, 2);
+        parsed = JSON.parse(details);
     } catch {
-        content = details || '';
+        // 兼容旧格式
     }
 
-    const lines = content.split('\n');
-    const needsExpand = lines.length > MAX_LINES;
-    const displayContent = expanded ? content : lines.slice(0, MAX_LINES).join('\n');
+    // 如果无法解析或是旧格式，显示原始内容
+    if (!parsed || (!parsed.summary && !parsed.changes && !parsed.fields)) {
+        return (
+            <Text type="secondary" style={{ fontSize: 12 }}>
+                {details || '-'}
+            </Text>
+        );
+    }
+
+    // 渲染变更列表
+    const renderChanges = (changes: ChangeItem[]) => {
+        const displayChanges = expanded ? changes : changes.slice(0, 3);
+        return (
+            <div style={{ fontSize: 12 }}>
+                {displayChanges.map((change, index) => (
+                    <div key={index} style={{ marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+                        <Text strong>{change.field}:</Text>
+                        <Text type="secondary" delete style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {change.from}
+                        </Text>
+                        <ArrowRightOutlined style={{ fontSize: 10, color: '#1890ff' }} />
+                        <Text type="success" style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {change.to}
+                        </Text>
+                    </div>
+                ))}
+                {changes.length > 3 && (
+                    <Button
+                        type="link"
+                        size="small"
+                        onClick={() => setExpanded(!expanded)}
+                        icon={expanded ? <UpOutlined /> : <DownOutlined />}
+                        style={{ padding: 0, height: 'auto' }}
+                    >
+                        {expanded ? '收起' : `还有 ${changes.length - 3} 项变更`}
+                    </Button>
+                )}
+            </div>
+        );
+    };
+
+    // 渲染创建时的字段列表
+    const renderFields = (fields: Record<string, string>) => {
+        const entries = Object.entries(fields);
+        const displayEntries = expanded ? entries : entries.slice(0, 3);
+        return (
+            <div style={{ fontSize: 12 }}>
+                {displayEntries.map(([key, value]) => (
+                    <div key={key} style={{ marginBottom: 2 }}>
+                        <Text type="secondary">{key}:</Text> <Text>{String(value)}</Text>
+                    </div>
+                ))}
+                {entries.length > 3 && (
+                    <Button
+                        type="link"
+                        size="small"
+                        onClick={() => setExpanded(!expanded)}
+                        icon={expanded ? <UpOutlined /> : <DownOutlined />}
+                        style={{ padding: 0, height: 'auto' }}
+                    >
+                        {expanded ? '收起' : `还有 ${entries.length - 3} 项`}
+                    </Button>
+                )}
+            </div>
+        );
+    };
+
+    // 渲染删除的合同信息
+    const renderDeletedContract = (deletedContract: Record<string, string>) => (
+        <div style={{ fontSize: 12 }}>
+            {Object.entries(deletedContract).map(([key, value]) => (
+                <div key={key} style={{ marginBottom: 2 }}>
+                    <Text type="secondary">{key}:</Text> <Text delete type="danger">{String(value)}</Text>
+                </div>
+            ))}
+        </div>
+    );
 
     return (
-        <div style={{ maxWidth: 400 }}>
-            <pre style={{
-                margin: 0,
-                fontSize: 12,
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-                overflow: 'hidden',
-            }}>
-                {displayContent}
-                {!expanded && needsExpand && '...'}
-            </pre>
-            {needsExpand && (
-                <Button
-                    type="link"
-                    size="small"
-                    onClick={() => setExpanded(!expanded)}
-                    icon={expanded ? <UpOutlined /> : <DownOutlined />}
-                    style={{ padding: 0, height: 'auto', marginTop: 4 }}
-                >
-                    {expanded ? '收起' : '展开'}
-                </Button>
+        <div style={{ maxWidth: 350 }}>
+            {parsed.summary && (
+                <div style={{ marginBottom: 4 }}>
+                    <Text strong style={{ fontSize: 12 }}>{parsed.summary}</Text>
+                    {parsed.contractName && (
+                        <Text type="secondary" style={{ fontSize: 11, marginLeft: 4 }}>
+                            ({parsed.contractName})
+                        </Text>
+                    )}
+                </div>
             )}
+            {parsed.changes && parsed.changes.length > 0 && renderChanges(parsed.changes)}
+            {parsed.fields && renderFields(parsed.fields)}
+            {parsed.deletedContract && renderDeletedContract(parsed.deletedContract)}
         </div>
     );
 }
@@ -134,7 +213,7 @@ export default function AuditLogPage() {
             title: '详情',
             dataIndex: 'details',
             key: 'details',
-            render: (details: string) => <ExpandableDetails details={details} />,
+            render: (details: string) => <FormattedDetails details={details} />,
         },
     ];
 
