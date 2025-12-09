@@ -25,7 +25,7 @@ export class ContractsService {
             fields: {
                 '合同名称': dto.name,
                 '合作方': dto.partner,
-                '签署日期': dto.signDate,
+                '签订日期': dto.signDate,
                 '到期日期': dto.expireDate,
                 '状态': this.getStatusLabel(dto.status || 'active'),
             },
@@ -164,7 +164,7 @@ export class ContractsService {
             deletedContract: {
                 '合同名称': existing.name,
                 '合作方': existing.partner,
-                '签署日期': this.formatDate(existing.signDate),
+                '签订日期': this.formatDate(existing.signDate),
                 '到期日期': this.formatDate(existing.expireDate),
             },
         });
@@ -214,7 +214,7 @@ export class ContractsService {
         const fieldLabels: Record<string, string> = {
             name: '合同名称',
             partner: '合作方',
-            signDate: '签署日期',
+            signDate: '签订日期',
             expireDate: '到期日期',
             status: '状态',
             isProcessed: '处理状态',

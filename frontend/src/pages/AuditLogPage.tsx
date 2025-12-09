@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Table, Card, Select, DatePicker, Space, Tag, Button, Typography } from 'antd';
-import { ReloadOutlined, DownOutlined, UpOutlined, ArrowRightOutlined } from '@ant-design/icons';
+import { Table, Card, Select, DatePicker, Space, Tag, Button, Typography, Modal } from 'antd';
+import { ReloadOutlined, EyeOutlined, ArrowRightOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../services/api';
 
@@ -36,10 +36,31 @@ const actionLabels: Record<string, { label: string; color: string }> = {
     process: { label: '处理', color: 'orange' },
 };
 
-// 格式化详情显示组件
-function FormattedDetails({ details }: { details: string }) {
-    const [expanded, setExpanded] = useState(false);
+// 生成简短预览文本
+function getPreviewText(details: string): string {
+    try {
+        const parsed = JSON.parse(details) as ParsedDetails;
+        if (parsed.summary) {
+            return parsed.summary;
+        }
+        if (parsed.changes && parsed.changes.length > 0) {
+            const count = parsed.changes.length;
+            return `修改了 ${count} 项字段`;
+        }
+        if (parsed.fields) {
+            return `新建记录`;
+        }
+        if (parsed.deletedContract) {
+            return `删除记录`;
+        }
+    } catch {
+        // 旧格式
+    }
+    return details?.slice(0, 30) || '-';
+}
 
+// 完整详情弹窗内容
+function FullDetails({ details }: { details: string }) {
     let parsed: ParsedDetails | null = null;
     try {
         parsed = JSON.parse(details);
@@ -47,91 +68,56 @@ function FormattedDetails({ details }: { details: string }) {
         // 兼容旧格式
     }
 
-    // 如果无法解析或是旧格式，显示原始内容
     if (!parsed || (!parsed.summary && !parsed.changes && !parsed.fields)) {
         return (
-            <Text type="secondary" style={{ fontSize: 12 }}>
+            <Text type="secondary" style={{ fontSize: 13 }}>
                 {details || '-'}
             </Text>
         );
     }
 
-    // 渲染变更列表
-    const renderChanges = (changes: ChangeItem[]) => {
-        const displayChanges = expanded ? changes : changes.slice(0, 3);
-        return (
-            <div style={{ fontSize: 12 }}>
-                {displayChanges.map((change, index) => (
-                    <div key={index} style={{ marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
-                        <Text strong>{change.field}:</Text>
-                        <Text type="secondary" delete style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {change.from}
-                        </Text>
-                        <ArrowRightOutlined style={{ fontSize: 10, color: '#1890ff' }} />
-                        <Text type="success" style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {change.to}
-                        </Text>
-                    </div>
-                ))}
-                {changes.length > 3 && (
-                    <Button
-                        type="link"
-                        size="small"
-                        onClick={() => setExpanded(!expanded)}
-                        icon={expanded ? <UpOutlined /> : <DownOutlined />}
-                        style={{ padding: 0, height: 'auto' }}
-                    >
-                        {expanded ? '收起' : `还有 ${changes.length - 3} 项变更`}
-                    </Button>
-                )}
-            </div>
-        );
-    };
+    const renderChanges = (changes: ChangeItem[]) => (
+        <div style={{ fontSize: 13 }}>
+            {changes.map((change, index) => (
+                <div key={index} style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Text strong style={{ minWidth: 80 }}>{change.field}:</Text>
+                    <Text type="secondary" delete>{change.from || '(空)'}</Text>
+                    <ArrowRightOutlined style={{ fontSize: 12, color: '#1890ff' }} />
+                    <Text type="success">{change.to || '(空)'}</Text>
+                </div>
+            ))}
+        </div>
+    );
 
-    // 渲染创建时的字段列表
-    const renderFields = (fields: Record<string, string>) => {
-        const entries = Object.entries(fields);
-        const displayEntries = expanded ? entries : entries.slice(0, 3);
-        return (
-            <div style={{ fontSize: 12 }}>
-                {displayEntries.map(([key, value]) => (
-                    <div key={key} style={{ marginBottom: 2 }}>
-                        <Text type="secondary">{key}:</Text> <Text>{String(value)}</Text>
-                    </div>
-                ))}
-                {entries.length > 3 && (
-                    <Button
-                        type="link"
-                        size="small"
-                        onClick={() => setExpanded(!expanded)}
-                        icon={expanded ? <UpOutlined /> : <DownOutlined />}
-                        style={{ padding: 0, height: 'auto' }}
-                    >
-                        {expanded ? '收起' : `还有 ${entries.length - 3} 项`}
-                    </Button>
-                )}
-            </div>
-        );
-    };
+    const renderFields = (fields: Record<string, string>) => (
+        <div style={{ fontSize: 13 }}>
+            {Object.entries(fields).map(([key, value]) => (
+                <div key={key} style={{ marginBottom: 6 }}>
+                    <Text type="secondary" style={{ minWidth: 80, display: 'inline-block' }}>{key}:</Text>
+                    <Text>{String(value)}</Text>
+                </div>
+            ))}
+        </div>
+    );
 
-    // 渲染删除的合同信息
     const renderDeletedContract = (deletedContract: Record<string, string>) => (
-        <div style={{ fontSize: 12 }}>
+        <div style={{ fontSize: 13 }}>
             {Object.entries(deletedContract).map(([key, value]) => (
-                <div key={key} style={{ marginBottom: 2 }}>
-                    <Text type="secondary">{key}:</Text> <Text delete type="danger">{String(value)}</Text>
+                <div key={key} style={{ marginBottom: 6 }}>
+                    <Text type="secondary" style={{ minWidth: 80, display: 'inline-block' }}>{key}:</Text>
+                    <Text delete type="danger">{String(value)}</Text>
                 </div>
             ))}
         </div>
     );
 
     return (
-        <div style={{ maxWidth: 350 }}>
+        <div>
             {parsed.summary && (
-                <div style={{ marginBottom: 4 }}>
-                    <Text strong style={{ fontSize: 12 }}>{parsed.summary}</Text>
+                <div style={{ marginBottom: 12 }}>
+                    <Text strong style={{ fontSize: 14 }}>{parsed.summary}</Text>
                     {parsed.contractName && (
-                        <Text type="secondary" style={{ fontSize: 11, marginLeft: 4 }}>
+                        <Text type="secondary" style={{ marginLeft: 8 }}>
                             ({parsed.contractName})
                         </Text>
                     )}
@@ -144,11 +130,49 @@ function FormattedDetails({ details }: { details: string }) {
     );
 }
 
+// 列表中的预览组件
+function PreviewDetails({ details, onViewDetails }: { details: string; onViewDetails: () => void }) {
+    const preview = getPreviewText(details);
+    let hasMoreDetails = false;
+
+    try {
+        const parsed = JSON.parse(details) as ParsedDetails;
+        hasMoreDetails = !!(
+            (parsed.changes && parsed.changes.length > 0) ||
+            (parsed.fields && Object.keys(parsed.fields).length > 0) ||
+            parsed.deletedContract
+        );
+    } catch {
+        hasMoreDetails = !!(details && details.length > 30);
+    }
+
+    return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Text style={{ fontSize: 12 }}>{preview}</Text>
+            {hasMoreDetails && (
+                <Button
+                    type="link"
+                    size="small"
+                    icon={<EyeOutlined />}
+                    onClick={onViewDetails}
+                    style={{ padding: 0, height: 'auto', fontSize: 12 }}
+                >
+                    详情
+                </Button>
+            )}
+        </div>
+    );
+}
+
 export default function AuditLogPage() {
     const [logs, setLogs] = useState<AuditLog[]>([]);
     const [loading, setLoading] = useState(false);
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
+    const [detailModal, setDetailModal] = useState<{ open: boolean; log: AuditLog | null }>({
+        open: false,
+        log: null,
+    });
     const [filters, setFilters] = useState({
         action: '',
         userId: '',
@@ -213,7 +237,12 @@ export default function AuditLogPage() {
             title: '详情',
             dataIndex: 'details',
             key: 'details',
-            render: (details: string) => <FormattedDetails details={details} />,
+            render: (details: string, record: AuditLog) => (
+                <PreviewDetails
+                    details={details}
+                    onViewDetails={() => setDetailModal({ open: true, log: record })}
+                />
+            ),
         },
     ];
 
@@ -264,6 +293,44 @@ export default function AuditLogPage() {
                     showTotal: (total) => `共 ${total} 条`,
                 }}
             />
+
+            <Modal
+                title="操作详情"
+                open={detailModal.open}
+                onCancel={() => setDetailModal({ open: false, log: null })}
+                footer={null}
+                width={600}
+            >
+                {detailModal.log && (
+                    <div>
+                        <div style={{ marginBottom: 16, padding: 12, background: '#fafafa', borderRadius: 6 }}>
+                            <Space size="large">
+                                <div>
+                                    <Text type="secondary">时间：</Text>
+                                    <Text>{dayjs(detailModal.log.createdAt).format('YYYY-MM-DD HH:mm:ss')}</Text>
+                                </div>
+                                <div>
+                                    <Text type="secondary">操作：</Text>
+                                    <Tag color={actionLabels[detailModal.log.action]?.color || 'default'}>
+                                        {actionLabels[detailModal.log.action]?.label || detailModal.log.action}
+                                    </Tag>
+                                </div>
+                                <div>
+                                    <Text type="secondary">操作人：</Text>
+                                    <Text>{detailModal.log.user?.name || '-'}</Text>
+                                </div>
+                            </Space>
+                            {detailModal.log.contract?.name && (
+                                <div style={{ marginTop: 8 }}>
+                                    <Text type="secondary">相关合同：</Text>
+                                    <Text>{detailModal.log.contract.name}</Text>
+                                </div>
+                            )}
+                        </div>
+                        <FullDetails details={detailModal.log.details} />
+                    </div>
+                )}
+            </Modal>
         </div>
     );
 }
