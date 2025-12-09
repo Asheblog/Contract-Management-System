@@ -67,6 +67,15 @@ export default function DashboardCharts() {
         legend: {
             position: 'bottom' as const,
         },
+        tooltip: {
+            title: () => '',
+            items: [
+                (datum: { type: string; value: number }) => ({
+                    name: datum.type,
+                    value: datum.value,
+                }),
+            ],
+        },
         theme: theme === 'dark' ? 'dark' : 'light',
     };
 
