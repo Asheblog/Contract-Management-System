@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Table, Card, Select, DatePicker, Space, Tag, Button } from 'antd';
-import { ReloadOutlined } from '@ant-design/icons';
+import { ReloadOutlined, DownOutlined, UpOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import api from '../services/api';
 
@@ -19,6 +19,51 @@ const actionLabels: Record<string, { label: string; color: string }> = {
     delete: { label: '删除', color: 'red' },
     process: { label: '处理', color: 'orange' },
 };
+
+// 可展开的详情单元格组件
+function ExpandableDetails({ details }: { details: string }) {
+    const [expanded, setExpanded] = useState(false);
+    const MAX_LINES = 3;
+
+    let content: string;
+
+    try {
+        const parsed = JSON.parse(details);
+        content = JSON.stringify(parsed, null, 2);
+    } catch {
+        content = details || '';
+    }
+
+    const lines = content.split('\n');
+    const needsExpand = lines.length > MAX_LINES;
+    const displayContent = expanded ? content : lines.slice(0, MAX_LINES).join('\n');
+
+    return (
+        <div style={{ maxWidth: 400 }}>
+            <pre style={{
+                margin: 0,
+                fontSize: 12,
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                overflow: 'hidden',
+            }}>
+                {displayContent}
+                {!expanded && needsExpand && '...'}
+            </pre>
+            {needsExpand && (
+                <Button
+                    type="link"
+                    size="small"
+                    onClick={() => setExpanded(!expanded)}
+                    icon={expanded ? <UpOutlined /> : <DownOutlined />}
+                    style={{ padding: 0, height: 'auto', marginTop: 4 }}
+                >
+                    {expanded ? '收起' : '展开'}
+                </Button>
+            )}
+        </div>
+    );
+}
 
 export default function AuditLogPage() {
     const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -89,16 +134,7 @@ export default function AuditLogPage() {
             title: '详情',
             dataIndex: 'details',
             key: 'details',
-            render: (details: string) => {
-                try {
-                    const parsed = JSON.parse(details);
-                    return <pre style={{ margin: 0, fontSize: 12, maxWidth: 400, overflow: 'auto' }}>
-                        {JSON.stringify(parsed, null, 2)}
-                    </pre>;
-                } catch {
-                    return details;
-                }
-            },
+            render: (details: string) => <ExpandableDetails details={details} />,
         },
     ];
 
