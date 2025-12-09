@@ -127,14 +127,18 @@ export default function MainLayout() {
             }}>
                 {/* Logo + Navigation */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 12 : 32 }}>
-                    <div style={{
-                        color: 'white',
-                        fontSize: isMobile ? 16 : 20,
-                        fontWeight: 'bold',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8,
-                    }}>
+                    <div
+                        onClick={() => navigate('/')}
+                        style={{
+                            color: 'white',
+                            fontSize: isMobile ? 16 : 20,
+                            fontWeight: 'bold',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            cursor: 'pointer',
+                        }}
+                    >
                         <span style={{ fontSize: isMobile ? 20 : 24 }}>📋</span>
                         {!isMobile && <span>合同管理系统</span>}
                     </div>
