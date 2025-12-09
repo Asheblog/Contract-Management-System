@@ -414,7 +414,7 @@ export default function DashboardPage() {
                 </Space>
 
                 {showAdvancedSearch && (
-                    <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #f0f0f0' }}>
+                    <div className="advanced-search-section">
                         <Space wrap>
                             <div>
                                 <span style={{ marginRight: 8 }}>签订日期:</span>

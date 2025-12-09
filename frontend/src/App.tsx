@@ -41,11 +41,14 @@ function AppContent() {
                 },
             }}
         >
-            <div style={{
-                minHeight: '100vh',
-                background: theme === 'dark' ? '#141414' : '#f0f2f5',
-                transition: 'background 0.3s',
-            }}>
+            <div
+                data-theme={theme}
+                style={{
+                    minHeight: '100vh',
+                    background: theme === 'dark' ? '#141414' : '#f0f2f5',
+                    transition: 'background 0.3s',
+                }}
+            >
                 <BrowserRouter>
                     <Routes>
                         <Route path="/login" element={<LoginPage />} />

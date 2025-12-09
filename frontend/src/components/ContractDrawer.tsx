@@ -207,7 +207,7 @@ export default function ContractDrawer({ open, contract, mode, onClose, onModeCh
                     children: (
                         <div className="audit-log-item">
                             <div><strong>{log.user.name}</strong> {log.action === 'create' ? '创建' : log.action === 'update' ? '更新' : log.action === 'process' ? '处理' : '删除'}</div>
-                            <div style={{ color: '#999', fontSize: 12 }}>{dayjs(log.createdAt).format('YYYY-MM-DD HH:mm')}</div>
+                            <div className="text-secondary" style={{ fontSize: 12 }}>{dayjs(log.createdAt).format('YYYY-MM-DD HH:mm')}</div>
                         </div>
                     ),
                 }))}

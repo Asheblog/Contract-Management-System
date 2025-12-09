@@ -132,7 +132,7 @@ export default function DashboardCharts() {
                             <Pie {...pieConfig} height={250} />
                         )}
                         {(!stats || stats.statusDistribution.every(s => s.value === 0)) && (
-                            <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>暂无数据</div>
+                            <div className="empty-state-text">暂无数据</div>
                         )}
                     </Card>
                 </Col>
@@ -142,7 +142,7 @@ export default function DashboardCharts() {
                             <Line {...lineConfig} height={250} />
                         )}
                         {(!stats || stats.expiryTrend.length === 0) && (
-                            <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>暂无数据</div>
+                            <div className="empty-state-text">暂无数据</div>
                         )}
                     </Card>
                 </Col>
