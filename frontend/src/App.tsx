@@ -7,7 +7,7 @@ import { useThemeStore } from './stores/themeStore'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import StatsDashboardPage from './pages/StatsDashboardPage'
-import SettingsPage from './pages/SettingsPage'
+import { SmtpSettingsPage, ReminderSettingsPage, FieldSettingsPage } from './pages/settings'
 import AuditLogPage from './pages/AuditLogPage'
 import ProfilePage from './pages/ProfilePage'
 import UserManagementPage from './pages/UserManagementPage'
@@ -62,7 +62,12 @@ function AppContent() {
                         >
                             <Route index element={<StatsDashboardPage />} />
                             <Route path="contracts" element={<DashboardPage />} />
-                            <Route path="settings" element={<SettingsPage />} />
+                            <Route path="settings">
+                                <Route index element={<SmtpSettingsPage />} />
+                                <Route path="smtp" element={<SmtpSettingsPage />} />
+                                <Route path="reminder" element={<ReminderSettingsPage />} />
+                                <Route path="fields" element={<FieldSettingsPage />} />
+                            </Route>
                             <Route path="logs" element={<AuditLogPage />} />
                             <Route path="profile" element={<ProfilePage />} />
                             <Route path="users" element={<UserManagementPage />} />

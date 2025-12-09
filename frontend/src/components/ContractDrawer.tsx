@@ -178,7 +178,7 @@ export default function ContractDrawer({ open, contract, mode, onClose, onModeCh
                     </Tag>
                     {contract?.isProcessed && <Tag color="green">已处理</Tag>}
                 </Descriptions.Item>
-                {fields.map(field => (
+                {fields.filter(f => !f.isSystem && f.isVisible).map(field => (
                     <Descriptions.Item key={field.key} label={field.label}>
                         {field.type === 'date' && contract?.customData[field.key]
                             ? dayjs(contract.customData[field.key]).format('YYYY-MM-DD')

@@ -1,6 +1,6 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Layout, Menu, Dropdown, Avatar, Space, Switch, Grid } from 'antd';
-import { FileTextOutlined, SettingOutlined, UserOutlined, LogoutOutlined, SunOutlined, MoonOutlined, HistoryOutlined, DashboardOutlined, TeamOutlined } from '@ant-design/icons';
+import { FileTextOutlined, SettingOutlined, UserOutlined, LogoutOutlined, SunOutlined, MoonOutlined, HistoryOutlined, DashboardOutlined, TeamOutlined, MailOutlined, BellOutlined, TableOutlined } from '@ant-design/icons';
 import api from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 import { useThemeStore } from '../stores/themeStore';
@@ -44,6 +44,23 @@ export default function MainLayout() {
                 key: '/settings',
                 icon: <SettingOutlined />,
                 label: isMobile ? '' : '系统设置',
+                children: [
+                    {
+                        key: '/settings/smtp',
+                        icon: <MailOutlined />,
+                        label: '邮件配置',
+                    },
+                    {
+                        key: '/settings/reminder',
+                        icon: <BellOutlined />,
+                        label: '提醒规则',
+                    },
+                    {
+                        key: '/settings/fields',
+                        icon: <TableOutlined />,
+                        label: '字段管理',
+                    },
+                ],
             },
         ] : []),
     ];
@@ -73,6 +90,22 @@ export default function MainLayout() {
             return user.avatar.startsWith('http') ? user.avatar : `${api.defaults.baseURL}${user.avatar}`;
         }
         return undefined;
+    };
+
+    // 计算选中的菜单项和展开的父菜单
+    const getSelectedKeys = () => {
+        const path = location.pathname;
+        if (path.startsWith('/settings/')) {
+            return [path];
+        }
+        return [path];
+    };
+
+    const getOpenKeys = () => {
+        if (location.pathname.startsWith('/settings')) {
+            return ['/settings'];
+        }
+        return [];
     };
 
     const headerBg = theme === 'dark'
@@ -108,13 +141,14 @@ export default function MainLayout() {
                     <Menu
                         theme="dark"
                         mode="horizontal"
-                        selectedKeys={[location.pathname]}
+                        selectedKeys={getSelectedKeys()}
+                        defaultOpenKeys={getOpenKeys()}
                         items={menuItems}
                         onClick={({ key }) => navigate(key)}
                         style={{
                             background: 'transparent',
                             borderBottom: 'none',
-                            minWidth: isMobile ? 100 : 300,
+                            minWidth: isMobile ? 100 : 400,
                         }}
                     />
                 </div>
