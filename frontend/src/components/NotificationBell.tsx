@@ -8,8 +8,14 @@ import { Contract } from '../types';
 
 export default function NotificationBell() {
     const navigate = useNavigate();
-    const { expiringContracts, fetchExpiringContracts, markProcessed } = useContractStore();
+    const { expiringContracts, fetchExpiringContracts, markProcessed, fields } = useContractStore();
     const [open, setOpen] = useState(false);
+
+    // 辅助函数：从系统字段配置中获取显示名称
+    const getFieldLabel = (key: string, defaultLabel: string): string => {
+        const field = fields.find(f => f.key === key && f.isSystem);
+        return field?.label || defaultLabel;
+    };
 
     useEffect(() => {
         fetchExpiringContracts();
@@ -66,7 +72,7 @@ export default function NotificationBell() {
                                             <Tag color={expire.color} style={{ marginLeft: 8 }}>{expire.text}</Tag>
                                         </span>
                                     }
-                                    description={`合作方: ${contract.partner}`}
+                                    description={`${getFieldLabel('partner', '合作方')}: ${contract.partner}`}
                                 />
                             </List.Item>
                         );

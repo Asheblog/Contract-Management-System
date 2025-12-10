@@ -21,6 +21,12 @@ export default function ContractDrawer({ open, contract, mode, onClose, onModeCh
     const [logs, setLogs] = useState<AuditLog[]>([]);
     const { fields, createContract, updateContract } = useContractStore();
 
+    // 辅助函数：从系统字段配置中获取显示名称
+    const getFieldLabel = (key: string, defaultLabel: string): string => {
+        const field = fields.find(f => f.key === key && f.isSystem);
+        return field?.label || defaultLabel;
+    };
+
     useEffect(() => {
         if (open && contract) {
             loadContractDetails();
@@ -168,11 +174,11 @@ export default function ContractDrawer({ open, contract, mode, onClose, onModeCh
                 <Button icon={<EditOutlined />} onClick={() => onModeChange('edit')}>编辑</Button>
             </div>
             <Descriptions column={1} bordered size="small">
-                <Descriptions.Item label="合同名称">{contract?.name}</Descriptions.Item>
-                <Descriptions.Item label="合作方">{contract?.partner}</Descriptions.Item>
-                <Descriptions.Item label="签订日期">{dayjs(contract?.signDate).format('YYYY-MM-DD')}</Descriptions.Item>
-                <Descriptions.Item label="到期日期">{dayjs(contract?.expireDate).format('YYYY-MM-DD')}</Descriptions.Item>
-                <Descriptions.Item label="状态">
+                <Descriptions.Item label={getFieldLabel('name', '合同名称')}>{contract?.name}</Descriptions.Item>
+                <Descriptions.Item label={getFieldLabel('partner', '合作方')}>{contract?.partner}</Descriptions.Item>
+                <Descriptions.Item label={getFieldLabel('signDate', '签订日期')}>{dayjs(contract?.signDate).format('YYYY-MM-DD')}</Descriptions.Item>
+                <Descriptions.Item label={getFieldLabel('expireDate', '到期日期')}>{dayjs(contract?.expireDate).format('YYYY-MM-DD')}</Descriptions.Item>
+                <Descriptions.Item label={getFieldLabel('status', '状态')}>
                     <Tag color={contract?.status === 'active' ? 'blue' : 'default'}>
                         {contract?.status === 'active' ? '进行中' : contract?.status === 'archived' ? '已归档' : '已作废'}
                     </Tag>
@@ -219,19 +225,19 @@ export default function ContractDrawer({ open, contract, mode, onClose, onModeCh
         <Form form={form} layout="vertical">
             <div className="contract-form-section">
                 <h4>基本信息</h4>
-                <Form.Item name="name" label="合同名称" rules={[{ required: true, message: '请输入合同名称' }]}>
+                <Form.Item name="name" label={getFieldLabel('name', '合同名称')} rules={[{ required: true, message: `请输入${getFieldLabel('name', '合同名称')}` }]}>
                     <Input />
                 </Form.Item>
-                <Form.Item name="partner" label="合作方" rules={[{ required: true, message: '请输入合作方' }]}>
+                <Form.Item name="partner" label={getFieldLabel('partner', '合作方')} rules={[{ required: true, message: `请输入${getFieldLabel('partner', '合作方')}` }]}>
                     <Input />
                 </Form.Item>
-                <Form.Item name="signDate" label="签订日期" rules={[{ required: true, message: '请选择签订日期' }]}>
+                <Form.Item name="signDate" label={getFieldLabel('signDate', '签订日期')} rules={[{ required: true, message: `请选择${getFieldLabel('signDate', '签订日期')}` }]}>
                     <DatePicker style={{ width: '100%' }} />
                 </Form.Item>
-                <Form.Item name="expireDate" label="到期日期" rules={[{ required: true, message: '请选择到期日期' }]}>
+                <Form.Item name="expireDate" label={getFieldLabel('expireDate', '到期日期')} rules={[{ required: true, message: `请选择${getFieldLabel('expireDate', '到期日期')}` }]}>
                     <DatePicker style={{ width: '100%' }} />
                 </Form.Item>
-                <Form.Item name="status" label="状态" initialValue="active">
+                <Form.Item name="status" label={getFieldLabel('status', '状态')} initialValue="active">
                     <Select options={[
                         { label: '进行中', value: 'active' },
                         { label: '已归档', value: 'archived' },
